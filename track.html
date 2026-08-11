@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Track Order — BSQUER</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --cream:#FAF8F4;--warm:#F2EDE4;--wood:#8B5E3C;--accent:#C8956C;
+  --dark:#1C1A17;--charcoal:#2A2622;--muted:#9A8878;--border:#E8E0D4;
+  --white:#FFFFFF;--text:#2A2420;--sub:#7A6A58;--green:#4A9B6F;--red:#B5544A;--blue:#5B7C99;
+}
+body{font-family:'Georgia',serif;background:var(--cream);color:var(--text);overflow-x:hidden;min-height:100vh;}
+a{color:inherit;}
+
+/* NAV (shared with collections.html) */
+.nav-wrap{position:sticky;top:0;z-index:100;padding:16px 48px;background:var(--cream);}
+nav{background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.6);border-radius:40px;padding:10px 10px 10px 18px;display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:0 4px 18px rgba(28,26,23,0.05);}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo svg{width:32px;height:32px;flex-shrink:0;}
+.nav-brand{font-size:14px;letter-spacing:0.2em;color:var(--dark);}
+.nav-links{display:flex;gap:26px;list-style:none;}
+.nav-links a{font-family:sans-serif;font-size:12px;letter-spacing:0.06em;color:var(--sub);text-decoration:none;transition:color 0.2s;}
+.nav-links a:hover{color:var(--accent);}
+.nav-links a.active{color:var(--dark);position:relative;}
+.nav-links a.active::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--accent);border-radius:2px;}
+
+/* PAGE */
+.track-wrap{max-width:640px;margin:0 auto;padding:56px 24px 100px;}
+.t-eye{font-family:sans-serif;font-size:10px;letter-spacing:0.25em;color:var(--accent);text-transform:uppercase;margin-bottom:10px;text-align:center;}
+.t-h{font-size:32px;color:var(--dark);margin-bottom:10px;text-align:center;}
+.t-sub{font-family:sans-serif;font-size:13.5px;color:var(--sub);line-height:1.7;text-align:center;max-width:440px;margin:0 auto 40px;}
+
+/* LOOKUP CARD */
+.lookup-card{background:var(--white);border:1px solid var(--border);border-radius:24px;padding:36px;}
+.form-msg{font-family:sans-serif;font-size:12.5px;padding:12px 14px;border-radius:12px;margin-bottom:16px;display:none;}
+.form-msg.show{display:block;}
+.form-msg.err{background:rgba(181,84,74,0.1);color:var(--red);}
+
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.fg label{font-family:sans-serif;font-size:10px;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;}
+.fg label sup{color:var(--red);}
+.fg input{background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:13px 15px;font-family:sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;}
+.fg input:focus{border-color:var(--accent);background:var(--white);}
+.field-err{font-family:sans-serif;font-size:10.5px;color:var(--red);display:none;}
+.fg.error input{border-color:var(--red);}
+.fg.error .field-err{display:block;}
+
+.track-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:32px;padding:15px;font-family:sans-serif;font-size:12.5px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;}
+.track-btn:hover{background:var(--wood);}
+.track-btn:disabled{background:var(--muted);cursor:not-allowed;}
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+.track-btn.loading .spinner{display:inline-block;}
+.track-btn.loading .btn-label{opacity:0.7;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.privacy-note{display:flex;gap:8px;align-items:flex-start;margin-top:18px;font-family:sans-serif;font-size:11px;color:var(--muted);line-height:1.6;}
+.privacy-note svg{flex-shrink:0;margin-top:2px;}
+
+/* RESULT CARD */
+#resultCard{display:none;margin-top:26px;background:var(--white);border:1px solid var(--border);border-radius:24px;padding:36px;}
+#resultCard.show{display:block;}
+
+.result-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap;}
+.result-oid{font-family:sans-serif;font-size:11px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.result-oid-val{font-size:19px;color:var(--dark);letter-spacing:0.02em;}
+.status-pill{font-family:sans-serif;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:7px 16px;border-radius:20px;color:#fff;white-space:nowrap;}
+.status-pill.pending{background:var(--muted);}
+.status-pill.confirmed{background:var(--blue);}
+.status-pill.processing{background:var(--accent);}
+.status-pill.completed{background:var(--green);}
+.status-pill.cancelled{background:var(--red);}
+
+/* TIMELINE */
+.timeline{display:flex;align-items:flex-start;margin:30px 0 34px;}
+.tl-step{flex:1;text-align:center;position:relative;}
+.tl-dot{width:26px;height:26px;border-radius:50%;background:var(--border);border:2px solid var(--border);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:all 0.3s;}
+.tl-dot svg{width:12px;height:12px;opacity:0;transition:opacity 0.2s;}
+.tl-step.done .tl-dot{background:var(--wood);border-color:var(--wood);}
+.tl-step.done .tl-dot svg{opacity:1;}
+.tl-step.current .tl-dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px rgba(200,149,108,0.18);}
+.tl-line{position:absolute;top:13px;left:calc(-50% + 13px);right:calc(50% + 13px);height:2px;background:var(--border);z-index:1;}
+.tl-step:first-child .tl-line{display:none;}
+.tl-step.done .tl-line, .tl-step.current .tl-line{background:var(--wood);}
+.tl-label{font-family:sans-serif;font-size:10.5px;letter-spacing:0.04em;color:var(--muted);text-transform:uppercase;}
+.tl-step.done .tl-label,.tl-step.current .tl-label{color:var(--dark);}
+.timeline.cancelled .tl-dot{background:var(--border)!important;border-color:var(--border)!important;}
+.timeline.cancelled .tl-line{background:var(--border)!important;}
+.cancelled-note{display:flex;align-items:center;gap:10px;background:rgba(181,84,74,0.08);color:var(--red);font-family:sans-serif;font-size:12.5px;padding:12px 16px;border-radius:12px;margin:-14px 0 30px;}
+
+/* DETAIL ROWS */
+.detail-block{border-top:1px solid var(--border);padding-top:20px;}
+.d-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-family:sans-serif;font-size:13px;}
+.d-row span:first-child{color:var(--sub);}
+.d-row span:last-child{color:var(--dark);font-weight:600;text-align:right;}
+.d-items{margin:6px 0 14px;}
+.d-item-row{display:flex;justify-content:space-between;font-family:sans-serif;font-size:13px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.d-item-name{color:var(--text);}
+.d-item-qty{color:var(--muted);font-size:11.5px;margin-left:6px;}
+.d-item-price{color:var(--dark);}
+.total-row{display:flex;justify-content:space-between;align-items:center;background:var(--warm);border-radius:14px;padding:14px 18px;margin-top:16px;font-family:sans-serif;}
+.total-row span:first-child{font-size:12px;color:var(--sub);letter-spacing:0.05em;text-transform:uppercase;}
+.total-row span:last-child{font-size:19px;font-weight:700;color:var(--wood);}
+
+.reset-link{display:block;text-align:center;margin-top:22px;font-family:sans-serif;font-size:12px;color:var(--sub);text-decoration:underline;cursor:pointer;background:none;border:none;width:100%;}
+.reset-link:hover{color:var(--accent);}
+
+/* NOT FOUND STATE */
+#notFoundCard{display:none;margin-top:26px;text-align:center;padding:20px 10px;}
+#notFoundCard.show{display:block;}
+.nf-icon{width:56px;height:56px;border-radius:50%;background:rgba(181,84,74,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.nf-h{font-size:19px;color:var(--dark);margin-bottom:8px;}
+.nf-p{font-family:sans-serif;font-size:13px;color:var(--sub);max-width:360px;margin:0 auto;line-height:1.7;}
+
+footer{background:var(--dark);padding:44px 56px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:60px;}
+.f-logo{font-size:14px;letter-spacing:0.2em;color:var(--cream);}
+.f-links{display:flex;gap:26px;}
+.f-links a{font-family:sans-serif;font-size:12px;color:rgba(250,248,244,0.5);text-decoration:none;transition:color 0.2s;}
+.f-links a:hover{color:var(--accent);}
+.f-copy{font-family:sans-serif;font-size:11px;color:rgba(250,248,244,0.3);}
+
+@media(max-width:640px){
+  .nav-links{display:none;}
+  .track-wrap{padding:40px 18px 80px;}
+  .lookup-card,#resultCard{padding:26px 20px;}
+  .tl-label{font-size:9px;}
+  footer{flex-direction:column;text-align:center;padding:32px 20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="nav-wrap">
+  <nav>
+    <a class="nav-logo" href="v2.html">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect x="2" y="2" width="28" height="28" rx="4" stroke="#C8956C" stroke-width="2"/>
+        <text x="16" y="22" font-size="17" font-family="Georgia,serif" text-anchor="middle" fill="#2A2420">B</text>
+      </svg>
+      <span class="nav-brand">BSQUER</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="v2.html">Home</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="#" class="active">Track Order</a></li>
+      <li><a href="v2.html">About</a></li>
+      <li><a href="v2.html">Contact</a></li>
+    </ul>
+  </nav>
+</div>
+
+<div class="track-wrap">
+  <p class="t-eye">Order Status</p>
+  <h1 class="t-h">Track your order</h1>
+  <p class="t-sub">Enter your Order ID and the phone number you placed it with. We'll verify the details and show you where it stands.</p>
+
+  <div class="lookup-card">
+    <div class="form-msg" id="formMsg"></div>
+    <form id="trackForm" onsubmit="submitTrack(event)">
+      <div class="fg" id="fg-orderId">
+        <label>Order ID<sup>*</sup></label>
+        <input type="text" id="f-orderId" placeholder="ORD-2026-00001" autocomplete="off"/>
+        <span class="field-err">Please enter your Order ID.</span>
+      </div>
+      <div class="fg" id="fg-phone">
+        <label>Phone Number<sup>*</sup></label>
+        <input type="text" id="f-phone" placeholder="09XXXXXXXX" autocomplete="off"/>
+        <span class="field-err">Please enter the phone number used for this order.</span>
+      </div>
+      <button class="track-btn" type="submit" id="trackBtn">
+        <span class="spinner"></span>
+        <span class="btn-label">Track Order</span>
+      </button>
+    </form>
+    <div class="privacy-note">
+      <svg width="14" height="14" fill="none" stroke="#9A8878" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Your order details are private. We only show the order that matches both your Order ID and phone number.</span>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="resultCard">
+    <div class="result-top">
+      <div>
+        <p class="result-oid">Order</p>
+        <p class="result-oid-val" id="r-orderId"></p>
+      </div>
+      <span class="status-pill" id="r-statusPill"></span>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-step" data-step="pending"><div class="tl-line"></div><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-label">Pending</div></div>
+      <div class="tl-step" data-step="confirmed"><div class="tl-line"></div><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-label">Confirmed</div></div>
+      <div class="tl-step" data-step="processing"><div class="tl-line"></div><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-label">Processing</div></div>
+      <div class="tl-step" data-step="completed"><div class="tl-line"></div><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tl-label">Completed</div></div>
+    </div>
+    <div class="cancelled-note" id="cancelledNote" style="display:none;">
+      <svg width="15" height="15" fill="none" stroke="#B5544A" stroke-width="2.4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+      <span>This order was cancelled<span id="cancelledWhen"></span>.</span>
+    </div>
+
+    <div class="detail-block">
+      <div class="d-items" id="d-items"></div>
+      <div class="total-row">
+        <span>Order Total</span>
+        <span id="r-total">—</span>
+      </div>
+      <div class="d-row" id="row-placed" style="margin-top:16px;"><span>Placed on</span><span id="r-createdAt">—</span></div>
+      <div class="d-row" id="row-updated"><span>Last updated</span><span id="r-updatedAt">—</span></div>
+    </div>
+
+    <button class="reset-link" onclick="resetTracking()">Track a different order</button>
+  </div>
+
+  <!-- NOT FOUND -->
+  <div id="notFoundCard">
+    <div class="nf-icon">
+      <svg width="26" height="26" fill="none" stroke="#B5544A" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    </div>
+    <h3 class="nf-h">We couldn't find that order</h3>
+    <p class="nf-p">Double-check your Order ID and the phone number you used when ordering, then try again.</p>
+    <button class="reset-link" onclick="resetTracking()">Try again</button>
+  </div>
+</div>
+
+<footer>
+  <div class="f-logo">B□ &nbsp;BSQUER</div>
+  <div class="f-links"><a href="v2.html">Home</a><a href="collections.html">Collections</a><a href="v2.html">About</a><a href="v2.html">Contact</a></div>
+  <div class="f-copy">© 2026 BSQUER Carpentry & Furniture · Addis Ababa</div>
+</footer>
+
+<script>
+/* ============================================================
+   CONFIG — point this at your real Apps Script Web App
+   ============================================================ */
+// Same deployment as the order API (collections.html) works fine if your
+// Apps Script routes by an "action" field — this request sends
+// {action:"track", orderId, phone}. Point it at a dedicated endpoint if
+// you prefer to keep tracking and ordering in separate scripts.
+const TRACK_API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+
+const STEPS = ['pending','confirmed','processing','completed'];
+
+/* ============================================================
+   READ ?order= FROM URL (arrives here from collections.html) 
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const params = new URLSearchParams(window.location.search);
+  const oid = params.get('order');
+  if(oid) document.getElementById('f-orderId').value = oid;
+});
+
+/* ============================================================
+   VALIDATION + SUBMIT
+   ============================================================ */
+function validate(){
+  let valid = true;
+  const orderId = document.getElementById('f-orderId').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+
+  toggleError('fg-orderId', orderId.length<3); if(orderId.length<3) valid=false;
+  const phoneOk = /^[0-9+\s-]{7,15}$/.test(phone);
+  toggleError('fg-phone', !phoneOk); if(!phoneOk) valid=false;
+
+  return valid;
+}
+function toggleError(id, hasError){
+  document.getElementById(id).classList.toggle('error', hasError);
+}
+
+async function submitTrack(e){
+  e.preventDefault();
+  const msg = document.getElementById('formMsg');
+  msg.className = 'form-msg';
+  hideResults();
+
+  if(!validate()){
+    msg.textContent = 'Please fix the highlighted fields.';
+    msg.className = 'form-msg err show';
+    return;
+  }
+
+  const payload = {
+    action: 'track',
+    orderId: document.getElementById('f-orderId').value.trim(),
+    phone: document.getElementById('f-phone').value.trim()
+  };
+
+  const btn = document.getElementById('trackBtn');
+  btn.disabled = true; btn.classList.add('loading');
+
+  try{
+    const res = await fetch(TRACK_API_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if(data && data.success && data.order){
+      renderResult(data.order);
+    }else{
+      showNotFound();
+    }
+  }catch(err){
+    console.error(err);
+    msg.textContent = "Couldn't reach the tracking service — check your connection and try again.";
+    msg.className = 'form-msg err show';
+  }finally{
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+}
+
+/* ============================================================
+   RENDER RESULT
+   ============================================================ */
+function renderResult(order){
+  document.getElementById('r-orderId').textContent = order.orderId || '—';
+
+  const status = (order.status || 'pending').toLowerCase();
+  const pill = document.getElementById('r-statusPill');
+  pill.textContent = capitalize(status);
+  pill.className = 'status-pill ' + (STEPS.includes(status) ? status : (status==='cancelled' ? 'cancelled' : 'pending'));
+
+  const timeline = document.getElementById('timeline');
+  const cancelledNote = document.getElementById('cancelledNote');
+  if(status === 'cancelled'){
+    timeline.classList.add('cancelled');
+    document.querySelectorAll('.tl-step').forEach(s=>s.classList.remove('done','current'));
+    cancelledNote.style.display = 'flex';
+    document.getElementById('cancelledWhen').textContent = order.updatedAt ? ` on ${formatDate(order.updatedAt)}` : '';
+  }else{
+    timeline.classList.remove('cancelled');
+    cancelledNote.style.display = 'none';
+    const idx = STEPS.indexOf(status);
+    document.querySelectorAll('.tl-step').forEach((el,i)=>{
+      el.classList.toggle('done', i < idx);
+      el.classList.toggle('current', i === idx);
+    });
+  }
+
+  // Line items — supports either a single product/quantity/unitPrice order,
+  // or an `items` array if the Apps Script response includes multiple.
+  const itemsBox = document.getElementById('d-items');
+  const items = Array.isArray(order.items) ? order.items : (order.productName ? [{
+    name: order.productName, quantity: order.quantity, unitPrice: order.unitPrice
+  }] : []);
+  itemsBox.innerHTML = items.length ? items.map(it=>`
+    <div class="d-item-row">
+      <span class="d-item-name">${escapeHTML(it.name||'Item')}${it.quantity?`<span class="d-item-qty">× ${it.quantity}</span>`:''}</span>
+      <span class="d-item-price">${it.unitPrice!==undefined ? formatPrice(it.unitPrice, order.currency) : ''}</span>
+    </div>`).join('') : '';
+
+  document.getElementById('r-total').textContent = order.total!==undefined ? formatPrice(order.total, order.currency) : '—';
+  document.getElementById('r-createdAt').textContent = order.createdAt ? formatDate(order.createdAt) : '—';
+
+  const updatedRow = document.getElementById('row-updated');
+  if(order.updatedAt){
+    updatedRow.style.display = 'flex';
+    document.getElementById('r-updatedAt').textContent = formatDate(order.updatedAt);
+  }else{
+    updatedRow.style.display = 'none';
+  }
+
+  hideResults();
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function showNotFound(){
+  hideResults();
+  document.getElementById('notFoundCard').classList.add('show');
+}
+function hideResults(){
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('notFoundCard').classList.remove('show');
+}
+function resetTracking(){
+  hideResults();
+  document.getElementById('formMsg').className = 'form-msg';
+  document.getElementById('f-orderId').focus();
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function formatPrice(amount, currency){
+  if(amount===undefined || amount===null) return '—';
+  return `${Number(amount).toLocaleString('en-US')} ${currency||'ETB'}`;
+}
+function formatDate(ts){
+  const d = new Date(ts);
+  if(isNaN(d)) return ts;
+  return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) + ' · ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+function escapeHTML(str){ return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+</script>
+</body>
+</html>
